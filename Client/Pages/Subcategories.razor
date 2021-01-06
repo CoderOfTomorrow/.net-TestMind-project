@@ -1,0 +1,52 @@
+﻿@page "/subcategories/{categoryId}"
+@inject HttpClient HttpClient
+@inject NavigationManager navManager
+@attribute [Authorize]
+
+
+<h1 style="text-align:center">Subcategorii</h1>
+@if (subcategoryList.Count > 0)
+{
+    <div class="row">
+        @foreach (var sub in subcategoryList)
+        {
+            <div class="col-4 p-4">
+                <div class="card" style="width: 18rem;">
+                    <img src="..." class="card-img-top" alt="...">
+                    <div class="card-body">
+                        <h5 class="card-title">@sub.Name</h5>
+                        <p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p>
+                        <a class="btn btn-primary" @onclick="(e => ChooseSubcategory(sub.Id))">Go somewhere</a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+
+
+@code {
+    [Parameter]
+    public string categoryId { get; set; }
+
+    private List<SubcategoryDto> subcategoryList = new List<SubcategoryDto>();
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            subcategoryList = await HttpClient.GetFromJsonAsync<List<SubcategoryDto>>($"api/subcategory/{categoryId}");
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+    }
+
+    public void ChooseSubcategory(Guid id)
+    {
+        navManager.NavigateTo($"questions/{id}");
+    }
+}

@@ -1,0 +1,27 @@
+@page "/panel"
+@attribute [Authorize]
+
+    <h4>Management options :</h4>
+    <div class="list-group list-group-horizontal-md">
+        <button @onclick="()=> ChangeStatus(1)" class="list-group-item list-group-item-action">Categories</button>
+        <button @onclick="()=> ChangeStatus(2)" class="list-group-item list-group-item-action">Subcategories</button>
+        <button @onclick="()=> ChangeStatus(3)" class="list-group-item list-group-item-action">Questions</button>
+    </div>
+
+    @switch (Status)
+    {
+        case 1: <CategoryManager/> break;
+        case 2: <SubcategoryManager /> break;
+        case 3: <QuestionManager /> break;
+        default: Status = 0; break;
+    }
+
+@code{
+    public int Status = 0;
+
+    private void ChangeStatus(int value)
+    {
+        Status = value;
+        StateHasChanged();
+    }
+}

@@ -1,0 +1,24 @@
+﻿@page "/questions/{subcategoryId}"
+@inject HttpClient HttpClient
+@inject NavigationManager navManager
+@attribute [Authorize]
+
+@code {
+    [Parameter]
+    public string subcategoryId { get; set; }
+
+    private List<QuestionDto> questionList = new List<QuestionDto>();
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            questionList = await HttpClient.GetFromJsonAsync<List<QuestionDto>>($"api/subcategory/{subcategoryId}");
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+    }
+}

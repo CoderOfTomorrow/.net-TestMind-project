@@ -1,0 +1,183 @@
+﻿@inject HttpClient HttpClient 
+
+<div class="card">
+    <div class="card-body">
+        <br />
+        <div class="row">
+            <div class="col-3">
+                <h5>Choose the category :</h5>
+            </div>
+            <div class="col-3">
+                <select class="custom-select" id="inputGroupSelect01" @bind="categoryId">
+                    <option selected>Choose...</option>
+                    @foreach (var cat in categoryList)
+                    {
+                        <option value="@cat.Id">@cat.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-3">
+                <h5>Choose the subcategory :</h5>
+            </div>
+            <div class="col-3">
+                <select class="custom-select" @bind="subcategoryId">
+                    <option selected>Choose...</option>
+                    @foreach (var scat in subcategoryList)
+                    {
+                        <option value="@scat.Id">@scat.Name</option>
+                    }
+                </select>
+            </div>
+        </div>
+
+        <!------------------------- ADD QUESTION ---------------------------->
+
+        <br />
+        <hr />
+        <br />
+            <div class="col-3">
+                Add New Question :
+            </div>
+            <div class="container btn-group-sm">
+                <input type="text" class="form-control" placeholder="Question name..." @bind=questionContent.Name>
+                <br />
+                <h5>Add answers :</h5>
+                @foreach (var obj in questionContent.Answers)
+                {
+                    objIndex = questionContent.Answers.IndexOf(obj);
+                    <div class="input-group ">
+                        <input type="text" @bind=obj.Name class="form-control form-check-inline" placeholder="Answer...">
+                        <div class="form-check form-check-inline input-group-text">
+                            <input class="form-check-input" type="radio" name="@objIndex" @onchange="@((ChangeEventArgs __e) => obj.Status=true)" checked="@obj.Status.Equals(true)">
+                            <label class="form-check-label">True</label>
+                        </div>
+                        <div class="form-check form-check-inline input-group-text">
+                            <input class="form-check-input" type="radio" name="@objIndex" @onchange="@((ChangeEventArgs __e) => obj.Status=false)" checked="@obj.Status.Equals(false)">
+                            <label class="form-check-label">False</label>
+                        </div>
+
+                        @if (questionContent.Answers.Count > 1)
+                        {
+                            <span class="btn btn-danger form-inline" @onclick="@(() =>DeletAnswer(questionContent.Answers.IndexOf(obj)))">-</span>
+                        }
+                    </div>
+                    <br />
+
+                }
+                @if (questionContent.Answers.Count < 5)
+                {
+                    <span class="btn btn-info" @onclick=AddAnswer>Add Answer</span>
+                }
+                <span class="btn btn-info" @onclick=ClearAnswers>Clear Answers</span>
+
+                @if (CheckQuestion())
+                {
+                    <span class="btn btn-danger" @onclick=AddQuestion>Add question</span>
+                }
+                else
+                {
+                    <span class="btn btn-danger disabled">Add question</span>
+                }
+
+                <hr />
+                @if (questionList != null)
+                {
+                    foreach (var obj in questionList)
+                    {
+                        <h5>@obj.Name</h5>
+                        foreach (var answer in obj.Answers)
+                        {
+                            <h6>@answer.Name | @answer.Status</h6>
+                        }
+                    }
+                }
+            </div>
+        </div>
+</div>
+@code {
+    private Guid initialCategoryId;
+    private Guid categoryId { get { return initialCategoryId; } set { initialCategoryId = value; LoadSubcategoryList().GetAwaiter(); } }
+    private Guid initialSubcategoryId;
+    private Guid subcategoryId { get { return initialSubcategoryId; } set { initialSubcategoryId = value; LoadQuestionList().GetAwaiter(); } }
+
+    private int objIndex;
+
+    private List<CategoryDto> categoryList = new List<CategoryDto>();
+    private List<SubcategoryDto> subcategoryList = new List<SubcategoryDto>();
+    private List<QuestionDto> questionList =  new List<QuestionDto>();
+    private QuestionDto questionContent = new QuestionDto { Answers = new List<AnswerDto> { new AnswerDto() } };
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            categoryList = await HttpClient.GetFromJsonAsync<List<CategoryDto>>("api/category");
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+    }
+
+    private async Task LoadSubcategoryList()
+    {
+        subcategoryList = await HttpClient.GetFromJsonAsync<List<SubcategoryDto>>($"api/subcategory/{categoryId}");
+        StateHasChanged();
+    }
+
+    private async Task LoadQuestionList()
+    {
+        questionList = await HttpClient.GetFromJsonAsync<List<QuestionDto>>($"api/question/{subcategoryId}");
+        StateHasChanged();
+    }
+
+    private async void AddQuestion()
+    {
+        await HttpClient.PostAsJsonAsync<QuestionDto>($"api/question?Id={subcategoryId}",questionContent,null);
+        questionContent = new QuestionDto { Answers = new List<AnswerDto>() };
+        await LoadQuestionList();
+    }
+
+    public void DeletAnswer(int index)
+    {
+        if (questionContent.Answers.Count > 1)
+        {
+            questionContent.Answers.RemoveAt(index);
+            StateHasChanged();
+        }
+    }
+
+    private void AddAnswer()
+    {
+        if (questionContent.Answers.Count < 6)
+        {
+            questionContent.Answers.Add(new AnswerDto());
+            StateHasChanged();
+        }
+    }
+
+    public bool CheckQuestion()
+    {
+        int status = 0;
+
+        foreach (var obj in questionContent.Answers)
+        {
+            if (obj.Status == true)
+                status++;
+            if (string.IsNullOrEmpty(obj.Name))
+                return false;
+        }
+
+        if (status == questionContent.Answers.Count || questionContent.Answers.Count < 2 || string.IsNullOrEmpty(questionContent.Name))
+            return false;
+
+        return true;
+    }
+
+    public void ClearAnswers()
+    {
+        questionContent.Answers = new List<AnswerDto> { new AnswerDto() };
+    }
+
+}

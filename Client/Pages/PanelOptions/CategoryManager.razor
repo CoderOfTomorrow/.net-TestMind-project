@@ -1,0 +1,92 @@
+﻿@inject HttpClient HttpClient
+
+
+    <div class="card">
+        <br />
+        <div class="card-body">
+            <div class="row">
+                <div class="col-4">
+                    Add New Category :
+                </div>
+                <div class="col-4">
+                    <input type="text" class="form-control" @bind="Name" />
+                </div>
+                <div class="col-4">
+                    <button class="btn btn-danger" @onclick=AddCategory>+</button>
+                </div>
+            </div>
+            <br />
+            <h4>Categories List :</h4>
+
+            <div class="row">
+                <div class="col-3">
+                    <h6 style="text-align:center">Name</h6>
+                </div>
+                <div class="col-3">
+                    <h6 style="text-align:center">Subcategory Count</h6>
+                </div>
+            </div>
+
+            @if (categoryList.Count > 0)
+            {
+                <ul class="list-group">
+                    @foreach(var cat in categoryList)
+                    {
+                    <li class="list-group-item d-flex  align-items-center">
+                        <div class="col-4">
+                            @cat.Name
+                        </div>
+                        <div class="col-4">
+                            @if (cat.Subcategories != null)
+                            {
+                                <span class="badge badge-primary badge-pill">@cat.Subcategories.Count</span>
+                            }
+                            else
+                            {
+                                <span class="badge badge-primary badge-pill">0</span>
+                            }
+                        </div>
+                        <div class="col-4">
+                            <button class="btn btn-info">Modify</button>
+                            <button class="btn btn-danger">Delete</button>
+                        </div>
+                    </li>
+                    }
+                </ul>
+            }
+            
+        </div>
+    </div>
+
+
+
+@code {
+    private string Name;
+    private List<CategoryDto> categoryList = new List<CategoryDto>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await LoadData();
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        categoryList = await HttpClient.GetFromJsonAsync<List<CategoryDto>>("api/category");
+    }
+
+    private async Task AddCategory()
+    {
+        if (string.IsNullOrWhiteSpace(Name))
+            return;
+
+        await HttpClient.PostAsync("api/category?name=" + Name, null);
+    }
+
+}
